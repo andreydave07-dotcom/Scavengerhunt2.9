@@ -29,11 +29,19 @@ canvas {
 .wm-scavengerhunt { max-height:1rem; }
 
 /* Scroll container */
-.scroll-container { width:100vw; height:100vh; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scroll-snap-type:x mandatory; display:flex; justify-content:center; align-items:center; }
-.scroll-content { display:flex; flex-direction:row; min-width:100vw; height:100%; justify-content:center; align-items:center; position:relative; }
+.scroll-container {
+  width:100vw; height:100vh; overflow:hidden;
+  display:flex; justify-content:center; align-items:center;
+}
+.scroll-content {
+  display:flex; flex-direction:column; justify-content:center; align-items:center; height:auto;
+}
 
 /* Login container */
-.login-container { position:relative; z-index:2; text-align:center; background:none; padding:0; border:none; box-shadow:none; max-width:90vw; width:350px; scroll-snap-align:center; }
+.login-container {
+  position:relative; z-index:2; text-align:center;
+  background:none; padding:0; border:none; box-shadow:none; max-width:90vw; width:350px;
+}
 .login-container h2 {
   font-family: 'Baloo 2', sans-serif !important;
   font-size: 2.8rem; text-transform:uppercase; letter-spacing:0.06em; color:white; line-height:1.1; margin-bottom:1rem;
@@ -74,9 +82,23 @@ canvas {
 .hidden { display:none; }
 
 /* Envelope container */
-.envelope-container { position:relative; text-align:center; z-index:2; max-width:90vw; width:400px; scroll-snap-align:center; }
+.envelope-container { position:relative; text-align:center; z-index:2; max-width:90vw; width:400px; }
 .envelope-wrapper { position:relative; display:inline-block; width:100%; cursor:pointer; }
 .envelope-wrapper.shake { animation: shake 2s infinite; }
+
+@keyframes inputShake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+  100% { transform: translateX(0); }
+}
+
+.input-error {
+  border: 2px solid red !important;
+  animation: inputShake 0.3s;
+}
 
 @keyframes shake {
   0% { transform: translate(0,0) rotate(0deg); }
@@ -111,21 +133,19 @@ canvas {
 .letter p { margin:0.5vh 0; font-size:1rem; text-align:justify; }
 .letter.show { display:block; opacity:1; transform:translateX(-50%) translateY(-5vh); }
 
+/* Mobile adjustments */
 @media(max-width:480px){
-.scroll-container{overflow:hidden;}
-.scroll-content{flex-direction:column; justify-content:flex-start; align-items:center; height:100vh;}
-.login-container{width:90vw; padding:0.5rem;}
-.login-container h2{font-size:1.5rem; line-height:1.2;}
-.login-container input{width:85%; font-size:1rem; padding:0.6rem;}
-.keyboard{max-width:95vw;}
-.keyboard-row{gap:1vw;}
-.keyboard button{font-size:clamp(0.7rem,3vw,0.9rem); min-width:2rem; padding:0.5rem 0.3rem;}
-.keyboard button.shift,.keyboard button.del,.keyboard button.enter{flex:1 1 30%; min-width:40px;}
-.keyboard button.space{flex:1 1 50%; min-width:60px;}
-.envelope-container{width:90vw;}
-.envelope-wrapper img{max-width:250px;}
-.letter{width:90%; max-width:300px; top:-12vh; font-size:0.9rem;}
-.letter h3{font-size:1.2rem;}
+  .login-container h2{font-size:1.5rem; line-height:1.2;}
+  .login-container input{width:85%; font-size:1rem; padding:0.6rem;}
+  .keyboard{max-width:95vw;}
+  .keyboard-row{gap:1vw;}
+  .keyboard button{font-size:clamp(0.7rem,3vw,0.9rem); min-width:2rem; padding:0.5rem 0.3rem;}
+  .keyboard button.shift,.keyboard button.del,.keyboard button.enter{min-width:40px;}
+  .keyboard button.space{min-width:60px;}
+  .envelope-container{width:90vw; margin-top:2vh;}
+  .envelope-wrapper img{max-width:250px;}
+  .letter{width:90%; max-width:300px; top:-12vh; font-size:0.9rem;}
+  .letter h3{font-size:1.2rem;}
 }
 </style>
 </head>
@@ -196,20 +216,30 @@ function renderKeyboard(){
 passwordInput.addEventListener("keyup",e=>{if(e.key==="Enter")checkPassword();});
 renderKeyboard();
 
-function checkPassword(){
-  if(passwordInput.value.trim().toUpperCase()===correctPassword.toUpperCase()){
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("envelopeSection").classList.remove("hidden");
-  } else { passwordInput.value=""; }
+// Canvas sparks
+const canvas=document.getElementById("sparks"); 
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+
+let sparks=[]; 
+for(let i=0;i<100;i++){ 
+  sparks.push({ 
+    x:Math.random()*canvas.width, 
+    y:Math.random()*canvas.height, 
+    radius:Math.random()*2+1, 
+    dx:(Math.random()-0.5)*0.6, 
+    dy:(Math.random()-0.5)*0.6, 
+    color:"yellow",       // current color
+    baseColor:"yellow",   // original color to revert to
+    colorTimer:0          // timer for temporary color
+  }); 
 }
 
-// Sparks & envelope animation
-const canvas=document.getElementById("sparks"); const ctx=canvas.getContext("2d");
-canvas.width=window.innerWidth; canvas.height=window.innerHeight;
-let sparks=[]; for(let i=0;i<100;i++){ sparks.push({ x:Math.random()*canvas.width, y:Math.random()*canvas.height, radius:Math.random()*2+1, dx:(Math.random()-0.5)*0.6, dy:(Math.random()-0.5)*0.6, color:"yellow"}); }
-let sparksBurst=[]; let gems=[];
+let sparksBurst=[]; 
+let gems=[];
 
-const envelopeWrapper=document.getElementById("envelopeWrapper"); const envelope=document.getElementById("envelope");
+const envelopeWrapper=document.getElementById("envelopeWrapper"); 
+const envelope=document.getElementById("envelope");
 const letter=document.getElementById("letter");
 
 envelopeWrapper.addEventListener("click",()=>{
@@ -217,28 +247,121 @@ envelopeWrapper.addEventListener("click",()=>{
   envelope.src="openenve.png";
   letter.classList.add("show");
   envelopeWrapper.classList.remove("shake");
-  // Gold sparks burst
-  for(let i=0;i<50;i++){ sparksBurst.push({x:canvas.width/2, y:canvas.height/2, dx:(Math.random()-0.5)*8, dy:(Math.random()-1)*8, radius:Math.random()*2+1, color:"gold", life:60}); }
+  // Gold sparks burst at envelope center
+  const rect = envelope.getBoundingClientRect();
+  for(let i=0;i<50;i++){ 
+    sparksBurst.push({
+      x: rect.left + rect.width/2, 
+      y: rect.top + rect.height/2, 
+      dx:(Math.random()-0.5)*8, 
+      dy:(Math.random()-1)*8, 
+      radius:Math.random()*2+1, 
+      color:"gold", 
+      life:60
+    }); 
+  }
   // Green gems
-  for(let i=0;i<20;i++){ gems.push({x:Math.random()*canvas.width, y:-10, dx:(Math.random()-0.5)*2, dy:Math.random()*2+1, radius:Math.random()*4+2, alpha:1, life:200, trail:[]}); }
+  for(let i=0;i<20;i++){ 
+    gems.push({x:Math.random()*canvas.width, y:-10, dx:(Math.random()-0.5)*2, dy:Math.random()*2+1, radius:Math.random()*4+2, alpha:1, life:200, trail:[]}); 
+  }
   envelopeWrapper.dataset.opened="true";
 });
 
+function checkPassword(){
+  const normalizedInput = passwordInput.value.trim().replace(/\s+/g,' ').toUpperCase();
+  const normalizedPassword = correctPassword.trim().toUpperCase();
+  
+  if(normalizedInput === normalizedPassword){
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("envelopeSection").classList.remove("hidden");
+
+    // Sparks turn light green temporarily
+    sparks.forEach(s => { s.color="lightgreen"; s.colorTimer=60; s.dx *= 1.5; s.dy *= 1.5; });
+    sparksBurst.forEach(s => { s.color="lightgreen"; s.colorTimer=60; s.dx *= 1.5; s.dy *= 1.5; });
+  } else {
+    // Wrong password: shake input & red border
+    passwordInput.value="";
+    passwordInput.classList.add("input-error");
+    passwordInput.placeholder="Try again!";
+    setTimeout(()=>{ passwordInput.classList.remove("input-error"); }, 500);
+
+    // Sparks turn red temporarily
+    sparks.forEach(s => { s.color="red"; s.colorTimer=30; s.dx *= 1.5; s.dy *= 1.5; });
+    sparksBurst.push(...Array.from({length:20}, ()=>({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      dx: (Math.random()-0.5)*4,
+      dy: (Math.random()-0.5)*4,
+      radius: Math.random()*2+1,
+      color: "red",
+      colorTimer:30,
+      life: 40
+    })));
+  }
+}
+
 function drawSparks(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  sparks.forEach(s=>{ ctx.beginPath(); ctx.arc(s.x,s.y,s.radius,0,Math.PI*2); ctx.fillStyle=s.color; ctx.shadowColor=s.color; ctx.shadowBlur=15; ctx.fill(); s.x+=s.dx; s.y+=s.dy; if(s.x<0||s.x>canvas.width)s.dx*=-1; if(s.y<0||s.y>canvas.height)s.dy*=-1; });
+  
+  // Normal sparks
+  sparks.forEach(s=>{
+    ctx.beginPath(); 
+    ctx.arc(s.x,s.y,s.radius,0,Math.PI*2); 
+    ctx.fillStyle=s.color; 
+    ctx.shadowColor=s.color; 
+    ctx.shadowBlur=15; 
+    ctx.fill(); 
 
+    s.x+=s.dx; s.y+=s.dy; 
+    if(s.x<0||s.x>canvas.width)s.dx*=-1; 
+    if(s.y<0||s.y>canvas.height)s.dy*=-1;
+
+    // Revert color gradually back to baseColor
+    if(s.colorTimer>0){
+      s.colorTimer--;
+      if(s.colorTimer===0) s.color = s.baseColor;
+    }
+  });
+
+  // Sparks burst
   for(let i=sparksBurst.length-1;i>=0;i--){
-    const s=sparksBurst[i]; ctx.beginPath(); ctx.arc(s.x,s.y,s.radius,0,Math.PI*2); ctx.fillStyle=s.color; ctx.shadowColor=s.color; ctx.shadowBlur=10; ctx.fill();
-    s.x+=s.dx; s.y+=s.dy; s.dy+=0.1; s.life--; if(s.life<=0)sparksBurst.splice(i,1);
+    const s=sparksBurst[i]; 
+    ctx.beginPath(); 
+    ctx.arc(s.x,s.y,s.radius,0,Math.PI*2); 
+    ctx.fillStyle=s.color; 
+    ctx.shadowColor=s.color; 
+    ctx.shadowBlur=10; 
+    ctx.fill();
+    s.x+=s.dx; s.y+=s.dy; s.dy+=0.1; s.life--; 
+    if(s.life<=0)sparksBurst.splice(i,1);
+
+    // Revert color for bursts
+    if(s.colorTimer>0){
+      s.colorTimer--;
+      if(s.colorTimer===0) s.color = "yellow";
+    }
   }
 
+  // Gems
   for(let i=gems.length-1;i>=0;i--){
-    const g=gems[i]; ctx.beginPath(); ctx.arc(g.x,g.y,g.radius,0,Math.PI*2); ctx.fillStyle=`rgba(0,255,136,${g.alpha})`; ctx.shadowColor="#00FF88"; ctx.shadowBlur=10; ctx.fill();
-    g.trail.push({x:g.x,y:g.y,alpha:g.alpha}); if(g.trail.length>8)g.trail.shift();
-    g.trail.forEach((t,index)=>{ctx.beginPath();ctx.arc(t.x,t.y,g.radius*(0.6-index*0.07),0,Math.PI*2);ctx.fillStyle=`rgba(0,255,136,${t.alpha*0.6})`;ctx.shadowBlur=5;ctx.fill();});
-    g.x+=g.dx; g.y+=g.dy; if(g.y+g.radius>=canvas.height){ g.y=canvas.height-g.radius; g.dy*=-0.6; g.dx*=0.8; }
-    g.dy+=0.05; g.alpha-=0.004; g.life--; if(g.life<=0||g.alpha<=0)gems.splice(i,1);
+    const g=gems[i]; 
+    ctx.beginPath(); 
+    ctx.arc(g.x,g.y,g.radius,0,Math.PI*2); 
+    ctx.fillStyle=`rgba(0,255,136,${g.alpha})`; 
+    ctx.shadowColor="#00FF88"; ctx.shadowBlur=10; ctx.fill();
+    g.trail.push({x:g.x,y:g.y,alpha:g.alpha}); 
+    if(g.trail.length>8) g.trail.shift();
+    g.trail.forEach((t,index)=>{
+      ctx.beginPath();
+      ctx.arc(t.x,t.y,g.radius*(0.6-index*0.07),0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,255,136,${t.alpha*0.6})`;
+      ctx.shadowBlur=5;
+      ctx.fill();
+    });
+    g.x+=g.dx; g.y+=g.dy; 
+    if(g.y+g.radius>=canvas.height){ g.y=canvas.height-g.radius; g.dy*=-0.6; g.dx*=0.8; }
+    g.dy+=0.05; g.alpha-=0.004; g.life--; 
+    if(g.life<=0||g.alpha<=0) gems.splice(i,1);
   }
 
   requestAnimationFrame(drawSparks);
@@ -247,6 +370,9 @@ drawSparks();
 window.onresize=()=>{canvas.width=window.innerWidth; canvas.height=window.innerHeight;};
 </script>
 
+
 </body>
 </html>
+
+
 
